@@ -1,0 +1,1 @@
+Esta carpeta contendra los archivos generados durante el entrenamiento

@@ -1,0 +1,1 @@
+Esta carpeta contendrá los datos de entrenamiento ya convertidos al formato del modelo

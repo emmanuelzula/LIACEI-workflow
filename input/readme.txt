@@ -1,0 +1,1 @@
+Esta carpeta debera contener los dato de entrenamiento en formato .data y el achivo de configuración en formato .yml

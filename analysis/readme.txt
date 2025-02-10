@@ -1,0 +1,1 @@
+Esta carpeta contendrá los datos para graficar y las graficas.
