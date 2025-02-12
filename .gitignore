@@ -1,2 +1,7 @@
-input/input.data
 **/__pycache__/
+input/input.data
+input/config.yaml
+train/epoch=149-val_loss=0.3025-test_loss=0.3458.ckpt
+train/metrics.csv
+train/splits.npz
+script.ipynb

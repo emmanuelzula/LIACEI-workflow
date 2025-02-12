@@ -32,6 +32,58 @@ class DinamicaMolecular:
 
         # Asignar el número de frame al objeto Frame
         frame.numero_frame = numero_frame 
+    
+    def cargar_desde_data(input_file):
+        """
+        Procesa un archivo de entrada de dinámica molecular y almacena los datos en una base de datos.
+
+        Parámetros:
+        input_file (str): Ruta al archivo de entrada a procesar.
+
+        Retorna:
+        DinamicaMolecular: Instancia de la base de datos con los frames procesados.
+        """
+        HARTREE_TO_EV=27.211386245981 #Original: 27.21138602
+        HA_BO_TO_EV_ANGS=51.4220675112 #Original: 51.422067137
+        BO_TO_ANGS=0.529177210544
+        
+        # Crear la base de datos de dinámica molecular
+        base_de_datos = DinamicaMolecular()
+
+        # Leer el archivo línea por línea
+        with open(input_file, "r") as archivo:
+            for linea in archivo:
+                # Convertir línea de texto a una lista Python
+                linea = linea.split()
+
+                # Detectar el inicio de un frame
+                if linea[0] == "begin":
+                    frame_actual = Frame()  # Crear un nuevo frame vacío
+
+                # Procesar información del átomo
+                elif linea[0] == "atom":
+                    # Convertir valores de posición y fuerza a float
+                    x, y, z = map(float, linea[1:4])
+                    fx, fy, fz = map(float, linea[7:10])
+
+                    # Crear instancias de los elementos relacionados con el átomo
+                    elemento = ElementoQuimico(linea[4])  # Crear el objeto ElementoQuimico
+                    posicion = Posicion(x, y, z) * BO_TO_ANGS
+                    fuerza = Fuerza(fx, fy, fz) * HA_BO_TO_EV_ANGS
+
+                    # Agregar el átomo al frame actual
+                    frame_actual.agregar_atomo(elemento, posicion, fuerza)
+
+                # Procesar información de la energía
+                elif linea[0] == "energy":
+                    frame_actual.energia = float(linea[1]) * HARTREE_TO_EV
+
+                # Finalizar el frame actual
+                elif linea[0] == "end":
+                    # Agregar el frame a la base de datos
+                    base_de_datos.agregar_frame(frame_actual)
+
+        return base_de_datos  # Devuelve la base de datos con los frames cargados
 
     def guardar_a_hdf5(dinamica_molecular, archivo):
         """
@@ -353,3 +405,4 @@ class Posicion(Vector):
 
 class Fuerza(Vector):
     """Representa una fuerza en 3D."""
+

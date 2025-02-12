@@ -1,7 +1,7 @@
-from LIACEI_workflow.DinamicaMolecular import DinamicaMolecular
-from LIACEI_workflow.DinamicaMolecular import Frame
+from LIACEI_workflow.data.DinamicaMolecular import DinamicaMolecular
 import h5py
 import yaml
+import os
 
 def guardar_a_TorchMDNet(dinamica_molecular, archivo):
         """
