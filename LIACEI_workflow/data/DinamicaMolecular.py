@@ -135,76 +135,7 @@ class DinamicaMolecular:
 
         return dinamica_molecular
     
-    def guardar_a_TorchMDNet(dinamica_molecular, archivo):
-        """
-        Guarda una instancia de DinamicaMolecular en un archivo HDF5, agrupando los frames por número de átomos,
-        incluyendo un dataset 'n_frame' para conservar los números de frame originales.
 
-        :param dinamica_molecular: Objeto DinamicaMolecular a guardar.
-        :param archivo: Nombre del archivo HDF5.
-        """
-        with h5py.File(archivo, "w") as archivo_h5:
-            # Iterar por cada número de átomos único
-            for num_atomos in set(frame.numero_atomos for frame in dinamica_molecular.frames.values()):
-                # Crear un grupo para este número de átomos
-                group = archivo_h5.create_group(f"{num_atomos}_atoms")
-                
-                # Crear listas para almacenar los datos de los frames correspondientes
-                energias = []
-                tipos = []
-                posiciones = []
-                fuerzas = []
-                numeros_frames = []  # Lista para guardar los números de frame originales
-
-                # Filtrar frames por el número de átomos
-                for numero_frame, frame in dinamica_molecular.frames.items():
-                    if frame.numero_atomos == num_atomos:
-                        energias.append(frame.energia)
-                        tipos.append(frame.elementos)
-                        posiciones.append(frame.posiciones)
-                        fuerzas.append(frame.fuerzas)
-                        numeros_frames.append(numero_frame)
-
-                # Convertir listas a arrays NumPy y guardarlas en el grupo
-                group.create_dataset("energy", data=np.array(energias, dtype=np.float32), compression="gzip")
-                group.create_dataset("types", data=np.array(tipos, dtype=np.int32), compression="gzip")
-                group.create_dataset("pos", data=np.array(posiciones, dtype=np.float32), compression="gzip")
-                group.create_dataset("forces", data=np.array(fuerzas, dtype=np.float32), compression="gzip")
-                group.create_dataset("n_frame", data=np.array(numeros_frames, dtype=np.int32), compression="gzip")
-
-    def cargar_desde_TorchMDNet(archivo):
-        """
-        Carga una instancia de DinamicaMolecular desde un archivo HDF5, recuperando los frames agrupados por número de átomos.
-
-        :param archivo: Nombre del archivo HDF5.
-        :return: Objeto DinamicaMolecular reconstruido.
-        """
-        # Crear una nueva instancia de DinamicaMolecular
-        dinamica_molecular = DinamicaMolecular()
-
-        with h5py.File(archivo, "r") as archivo_h5:
-            # Iterar por cada grupo en el archivo HDF5
-            for grupo_nombre in archivo_h5:
-                grupo = archivo_h5[grupo_nombre]
-
-                # Recuperar los datos de los datasets
-                energias = grupo["energy"][:]
-                tipos = grupo["types"][:]
-                posiciones = grupo["pos"][:]
-                fuerzas = grupo["forces"][:]
-                numeros_frames = grupo["n_frame"][:]
-
-                # Reconstruir los frames a partir de los datos
-                for i, numero_frame in enumerate(numeros_frames):
-                    frame = Frame(energia=energias[i])
-                    frame.elementos = tipos[i].tolist()  # Convertir a lista
-                    frame.posiciones = posiciones[i]
-                    frame.fuerzas = fuerzas[i]
-
-                    # Agregar el frame reconstruido a la DinamicaMolecular
-                    dinamica_molecular.agregar_frame(frame, numero_frame=numero_frame)
-
-        return dinamica_molecular
     
     def subconjunto(dinamica_molecular, indices):
         """
