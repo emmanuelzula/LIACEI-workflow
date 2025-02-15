@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
-from scripts.data import DinamicaMolecular
+from LIACEI_workflow.data.DinamicaMolecular import DinamicaMolecular
 import yaml
 
 def crear_carpeta(ruta_carpeta):

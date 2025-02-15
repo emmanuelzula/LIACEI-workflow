@@ -1,7 +1,9 @@
-from LIACEI_workflow.data.DinamicaMolecular import DinamicaMolecular
+from LIACEI_workflow.data.DinamicaMolecular import DinamicaMolecular, Frame
 import h5py
 import yaml
 import os
+import numpy as np
+import pandas as pd
 
 def guardar_a_TorchMDNet(dinamica_molecular, archivo):
         """
@@ -73,6 +75,107 @@ def cargar_desde_TorchMDNet(archivo):
                 dinamica_molecular.agregar_frame(frame, numero_frame=numero_frame)
 
     return dinamica_molecular
+
+def obtener_ruta_modelo_entrenado(directorio='train'):
+    import re
+    """
+    Busca el archivo de modelo entrenado con el mayor número de epoch dentro del directorio especificado.
+
+    Args:
+        directorio (str): Ruta del directorio donde buscar los modelos. Por defecto, 'output'.
+
+    Returns:
+        str: Ruta del archivo del modelo entrenado con el máximo número de epoch, o None si no se encuentra.
+    """
+    nombre_max_epoch = max(
+        (f for f in os.listdir(directorio) if re.match(r'epoch=(\d+)-val_loss', f)),
+        key=lambda x: int(re.search(r'epoch=(\d+)-val_loss', x).group(1)),
+        default=None
+    )
+
+    return os.path.join(directorio, nombre_max_epoch) if nombre_max_epoch else None
+
+def obtener_indices_test(ruta_splits):
+    """
+    Carga un archivo .npz y extrae los índices de prueba ('idx_test') ordenados.
+
+    Args:
+        ruta_splits (str): Ruta al archivo .npz que contiene los splits de datos.
+
+    Returns:
+        numpy.ndarray: Un array con los índices de prueba ordenados, o None si no se encuentra 'idx_test'.
+    """
+    try:
+        splits = np.load(ruta_splits)
+        if 'idx_test' in splits:
+            return np.sort(splits['idx_test'])
+        else:
+            raise KeyError("El archivo .npz no contiene la clave 'idx_test'.")
+    except Exception as e:
+        print(f"Error al cargar los índices de prueba: {e}")
+        return None
+
+import torch
+import gc
+from torchmdnet.models.model import load_model
+
+def generar_inferencias(DinamicaMolecular, modelo_entrenado, gpu=None):
+    """
+    Realiza inferencias sobre los frames en DinamicaMolecular utilizando un modelo de TorchMD-Net.
+
+    Args:
+        DinamicaMolecular: Instancia de la clase que contiene los frames a procesar.
+        modelo_entrenado (str): Ruta al modelo preentrenado.
+        gpu (str, opcional): ID de la GPU a utilizar (por defecto None, usa CPU si no está definido).
+
+    Returns:
+        DinamicaMolecular: Instancia con los valores de energía y fuerzas actualizados.
+    """
+    device = torch.device(f"cuda:{gpu}" if gpu is not None and torch.cuda.is_available() else "cpu")
+    model = load_model(modelo_entrenado, derivative=True, device=device)
+
+    for frame in DinamicaMolecular.frames.values():
+        torch.cuda.empty_cache()
+
+        # Convertir datos a tensores
+        pos = torch.tensor(frame.posiciones, dtype=torch.float32, device=device)
+        types = torch.tensor(frame.elementos, dtype=torch.long, device=device)
+
+        n_energy_inferred, n_forces_inferred = model(types, pos)
+
+        # Guardar resultados (asegurar que estén en CPU)
+        frame.energia = n_energy_inferred.cpu().item()  # Convertir a float puro
+        frame.fuerzas = n_forces_inferred.cpu().detach().numpy()  # Convertir a numpy array sin gradientes
+
+        # Limpiar memoria
+        del pos, types, n_energy_inferred, n_forces_inferred
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    return DinamicaMolecular  # Retorna el objeto actualizado
+
+def guardar_metricas_en_data(path_metric_csv, output_path):
+    """
+    Lee un archivo CSV de métricas, selecciona columnas específicas y guarda en un archivo .data con formato estructurado.
+
+    Args:
+        path_metric_csv (str): Ruta del archivo CSV de entrada.
+        output_path (str): Ruta del archivo .data de salida.
+
+    Returns:
+        None. Guarda los datos en el archivo de salida.
+    """
+    # Leer el archivo CSV en un DataFrame de pandas
+    metrics = pd.read_csv(path_metric_csv)
+
+    # Seleccionar las columnas deseadas
+    selected_columns = ['epoch', 'train_loss', 'val_loss']
+    train_metrics = metrics[selected_columns]
+
+    # Guardar en un archivo .data con el encabezado estructurado
+    with open(output_path, 'w') as file:
+        file.write("#Epoch MAE_Train MAE_Val\n")
+        train_metrics.to_csv(file, sep=' ', index=False, header=False, float_format='%.6f')
 
 def configuracion_TorchMDNet(archivo_configuracion, **kwargs):
     """

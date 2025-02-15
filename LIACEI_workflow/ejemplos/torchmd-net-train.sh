@@ -39,7 +39,7 @@ echo "Iniciando entrenamiento con TorchMD-Net..."
 
 start_time=$(date +%s)  # Captura el tiempo de inicio
 
-torchmd-train --conf input/input.yaml --log-dir train
+torchmd-train --conf input/config.yaml --log-dir train
 
 if [[ $? -ne 0 ]]; then
     echo "Error en el entrenamiento con TorchMD-Net."

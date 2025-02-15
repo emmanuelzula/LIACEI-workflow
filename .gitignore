@@ -1,6 +1,7 @@
 **/__pycache__/
+**.data
+**.h5
 LIACEI_workflow/LIACEI_workflow.egg-info
-input/input.data
 input/config.yaml
 train/epoch=149-val_loss=0.3025-test_loss=0.3458.ckpt
 train/metrics.csv

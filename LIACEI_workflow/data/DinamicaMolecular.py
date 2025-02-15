@@ -397,6 +397,44 @@ class Vector:
         if not isinstance(escalar, (int, float)):
             raise TypeError("La división debe ser con un escalar.")
         return Vector(*(self.componentes / escalar))
+    
+    def magnitud(self):
+        """
+        Calcula la magnitud (norma) del vector.
+        
+        Returns:
+            float: Magnitud del vector.
+        """
+        from numpy.linalg import norm
+        return norm(self.componentes)
+
+    def angulo(v1, v2):
+        """
+        Calcula el ángulo en grados entre dos vectores.
+
+        Args:
+            v1 (array-like): Primer vector.
+            v2 (array-like): Segundo vector.
+
+        Returns:
+            float: Ángulo en grados entre los dos vectores.
+        """
+        from math import acos, degrees
+        from numpy.linalg import norm
+        v1 = np.array(v1, dtype=np.float64)
+        v2 = np.array(v2, dtype=np.float64)
+
+        producto_punto = np.dot(v1, v2)
+        norma_v1 = norm(v1)
+        norma_v2 = norm(v2)
+        
+        # Evitar divisiones por cero
+        if norma_v1 == 0 or norma_v2 == 0:
+            raise ValueError("Uno de los vectores es nulo y no se puede calcular el ángulo.")
+
+        theta_radianes = acos(producto_punto / (norma_v1 * norma_v2))
+        return degrees(theta_radianes)  # Convertir de radianes a grados
+
 
 
 class Posicion(Vector):
