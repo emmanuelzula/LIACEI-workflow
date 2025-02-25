@@ -1,9 +1,10 @@
 **/__pycache__/
 **.data
 **.h5
+**.tiff
 LIACEI_workflow/LIACEI_workflow.egg-info
 input/config.yaml
 train/epoch=149-val_loss=0.3025-test_loss=0.3458.ckpt
 train/metrics.csv
 train/splits.npz
-script.ipynb
+script_old.ipynb
