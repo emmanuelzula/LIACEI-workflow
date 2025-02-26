@@ -154,7 +154,7 @@ def generar_inferencias(DinamicaMolecular, modelo_entrenado, gpu=None):
 
     return DinamicaMolecular  # Retorna el objeto actualizado
 
-def guardar_metricas_en_data(path_metric_csv, output_path):
+def guardar_metricas(path_metric_csv, output_path):
     """
     Lee un archivo CSV de métricas, selecciona columnas específicas y guarda en un archivo .data con formato estructurado.
 
@@ -176,6 +176,7 @@ def guardar_metricas_en_data(path_metric_csv, output_path):
     with open(output_path, 'w') as file:
         file.write("#Epoch MAE_Train MAE_Val\n")
         train_metrics.to_csv(file, sep=' ', index=False, header=False, float_format='%.6f')
+
 
 def configuracion_TorchMDNet(archivo_configuracion, **kwargs):
     """

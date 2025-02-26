@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import os
 
 class DinamicaMolecular:
     """
@@ -444,3 +445,223 @@ class Posicion(Vector):
 class Fuerza(Vector):
     """Representa una fuerza en 3D."""
 
+class Utils:
+
+    def comparar_frames(referencias, inferencias):
+        """
+        Compara los elementos de los frames en dos estructuras de datos.
+
+        Args:
+            referencias: Objeto que contiene frames con elementos de referencia.
+            inferencias: Objeto que contiene frames con elementos inferidos.
+
+        Raises:
+            ValueError: Si las estructuras tienen diferente número de frames o si hay diferencias en los elementos.
+        """
+        # Verificar que ambos tienen la misma cantidad de frames
+        if len(referencias.frames) != len(inferencias.frames):
+            raise ValueError("Error: Los arreglos tienen diferente número de frames.")
+
+        # Recorrer los frames comparando los arrays directamente
+        for index_frame in referencias.frames.keys():
+            elementos_referencias = referencias.frames[index_frame].elementos
+            elementos_inferencias = inferencias.frames[index_frame].elementos
+
+            # Comparar los arrays directamente (manteniendo el orden)
+            if elementos_referencias != elementos_inferencias:
+                raise ValueError(f"Error: Diferencia detectada en el frame {index_frame}.")
+
+    def obtener_elementos_unicos(referencias, inferencias):
+        """
+        Obtiene una lista de elementos únicos a partir de los frames en referencias e inferencias.
+
+        Args:
+            referencias: Objeto que contiene frames con elementos de referencia.
+            inferencias: Objeto que contiene frames con elementos inferidos.
+
+        Returns:
+            list: Lista de elementos únicos combinados de ambas estructuras.
+        """
+        # Crear conjuntos vacíos para almacenar elementos únicos
+        elementos_referencias = set()
+        elementos_inferencias = set()
+
+        # Recorrer todos los frames en referencias e inferencias y extraer elementos únicos
+        for frame in referencias.frames.values():
+            elementos_referencias.update(frame.elementos)
+
+        for frame in inferencias.frames.values():
+            elementos_inferencias.update(frame.elementos)
+
+        # Unir los conjuntos y devolver la lista de elementos únicos
+        return list(elementos_referencias | elementos_inferencias)
+
+    def calcular_angulos_y_guardar(referencias, inferencias, output_dir="analysis"):
+        """
+        Calcula los ángulos entre fuerzas en referencias e inferencias y los guarda en archivos por tipo de elemento.
+
+        Args:
+            referencias: Objeto que contiene frames con datos de referencia.
+            inferencias: Objeto que contiene frames con datos inferidos.
+            output_dir (str, opcional): Directorio donde se guardarán los archivos de salida. Por defecto "analysis".
+
+        Returns:
+            None. Escribe los resultados en archivos de texto por elemento.
+        """
+        import os
+
+        # Obtener elementos únicos de ambas estructuras
+        elementos_unicos = Utils.obtener_elementos_unicos(referencias, inferencias)
+
+        # Asegurar que el directorio de salida existe
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Crear los archivos con el encabezado antes de agregar datos
+        for elemento in elementos_unicos:
+            with open(f"{output_dir}/forces_angles_{ElementoQuimico(elemento).simbolo_str}.data", "w") as archivo:
+                archivo.write("theta(grados)\n")
+
+        # Diccionario para almacenar datos antes de escribir en archivos
+        datos_por_elemento = {}
+
+        # Iterar sobre cada frame en inferencias
+        for key, frame_inferencia in inferencias.frames.items():
+            frame_referencia = referencias.frames[key]  # Acceder al frame de referencia
+
+            # Iterar sobre los átomos del frame
+            for index, atomo in enumerate(frame_inferencia.atomos):
+                elemento = ElementoQuimico(atomo['numero_atomico']).simbolo_str
+
+                f_inferencia = atomo['fuerza']
+                f_referencia = frame_referencia.atomos[index]['fuerza']
+                angulo = Vector.angulo(f_inferencia, f_referencia)
+
+                # Almacenar en un diccionario por tipo de elemento
+                if elemento not in datos_por_elemento:
+                    datos_por_elemento[elemento] = []
+                datos_por_elemento[elemento].append(f"{angulo}\n")
+
+        # Escribir todos los datos en archivos con un buffer de 1MB para evitar bloqueos de I/O
+        for elemento, datos in datos_por_elemento.items():
+            with open(f"{output_dir}/forces_angles_{elemento}.data", "a", buffering=1024*1024) as archivo:
+                archivo.writelines(datos)  # Escribe toda la lista de una sola vez
+
+    import os
+
+    def calcular_modulos_fuerza_y_guardar(referencias, inferencias, output_dir="analysis"):
+        """
+        Calcula la magnitud de las fuerzas en referencias e inferencias y las guarda en archivos por tipo de elemento.
+
+        Args:
+            referencias: Objeto que contiene frames con datos de referencia.
+            inferencias: Objeto que contiene frames con datos inferidos.
+            output_dir (str, opcional): Directorio donde se guardarán los archivos de salida. Por defecto "analysis".
+
+        Returns:
+            None. Escribe los resultados en archivos de texto por elemento.
+        """
+        # Obtener elementos únicos de ambas estructuras
+        elementos_unicos = Utils.obtener_elementos_unicos(referencias, inferencias)
+
+        # Asegurar que el directorio de salida existe
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Crear los archivos con el encabezado antes de agregar datos
+        for elemento in elementos_unicos:
+            simbolo_elemento = ElementoQuimico(elemento).simbolo_str
+            with open(f"{output_dir}/forces_modules_{simbolo_elemento}.data", "w") as archivo:
+                archivo.write("f_reference(eV/A)\t f_inference(eV/A)\n")
+
+        # Diccionario para almacenar datos antes de escribir en archivos
+        datos_por_elemento = {}
+
+        # Iterar sobre cada frame en inferencias
+        for key, frame_inferencia in inferencias.frames.items():
+            frame_referencia = referencias.frames[key]  # Acceder al frame de referencia
+
+            # Iterar sobre los átomos del frame
+            for index, atomo in enumerate(frame_inferencia.atomos):
+                simbolo_elemento = ElementoQuimico(atomo['numero_atomico']).simbolo_str
+
+                # Extraer fuerzas de inferencia y referencia
+                fx, fy, fz = atomo['fuerza']
+                f_inferencia_magnitud = Fuerza.magnitud(Fuerza(fx, fy, fz))
+
+                fx, fy, fz = frame_referencia.atomos[index]['fuerza']
+                f_referencia_magnitud = Fuerza.magnitud(Fuerza(fx, fy, fz))
+
+                # Almacenar en un diccionario por tipo de elemento
+                if simbolo_elemento not in datos_por_elemento:
+                    datos_por_elemento[simbolo_elemento] = []
+                datos_por_elemento[simbolo_elemento].append(f"{f_referencia_magnitud}\t{f_inferencia_magnitud}\n")
+
+        # Escribir todos los datos en archivos de manera eficiente
+        for elemento, datos in datos_por_elemento.items():
+            with open(f"{output_dir}/forces_modules_{elemento}.data", "a", buffering=1024*1024) as archivo:
+                archivo.writelines(datos)  # Escribe toda la lista en una sola operación
+
+    def guardar_energia_referencia_vs_inferencia(referencias, inferencias, output_path="analysis/refence_energy_vs_inference_energy.data"):
+        """
+        Guarda la comparación de energía entre referencias e inferencias en un archivo.
+
+        Args:
+            referencias: Objeto que contiene frames con energía de referencia.
+            inferencias: Objeto que contiene frames con energía inferida.
+            output_path (str, opcional): Ruta del archivo donde se guardarán los datos. Por defecto "analysis/refence_energy_vs_inference_energy.data".
+
+        Returns:
+            None. Escribe los resultados en un archivo de texto.
+        """
+        # Asegurar que el directorio de salida existe
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        # Lista para acumular los datos antes de escribir en el archivo
+        datos = ["energia_referencia\tenergia_inferencia\n"]  # Agregar encabezado
+
+        # Iterar sobre cada frame en inferencias
+        for key, frame_inferencia in inferencias.frames.items():
+            frame_referencia = referencias.frames[key]  # Acceder al frame de referencia
+
+            energia_referencia = frame_referencia.energia
+            energia_inferencia = frame_inferencia.energia
+
+            # Almacenar los datos en la lista
+            datos.append(f"{energia_referencia}\t{energia_inferencia}\n")
+
+        # Escribir todos los datos en el archivo de manera eficiente
+        with open(output_path, "w", buffering=1024*1024) as archivo:
+            archivo.writelines(datos)  # Escribe toda la lista en una sola operación
+
+    def guardar_diferencia_energia(referencias, inferencias, output_path="analysis/diference_refence_energy_and_inference_energy.data"):
+        """
+        Calcula y guarda la diferencia de energía entre referencias e inferencias en un archivo.
+
+        Args:
+            referencias: Objeto que contiene frames con energía de referencia.
+            inferencias: Objeto que contiene frames con energía inferida.
+            output_path (str, opcional): Ruta del archivo donde se guardarán los datos. 
+                                        Por defecto "analysis/diference_refence_energy_and_inference_energy.data".
+
+        Returns:
+            None. Escribe los resultados en un archivo de texto.
+        """
+        # Asegurar que el directorio de salida existe
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        # Lista para acumular los datos antes de escribir en el archivo
+        datos = ["reference_energy(eV)\t inference_energy(eV)\t difference(eV)\n"]  # Agregar encabezado
+
+        # Iterar sobre cada frame en inferencias
+        for key, frame_inferencia in inferencias.frames.items():
+            frame_referencia = referencias.frames[key]  # Acceder al frame de referencia
+
+            energia_referencia = frame_referencia.energia
+            energia_inferencia = frame_inferencia.energia
+            diferencia = np.abs(energia_referencia - energia_inferencia)
+
+            # Almacenar los datos en la lista
+            datos.append(f"{energia_referencia}\t{energia_inferencia}\t{diferencia}\n")
+
+        # Escribir todos los datos en el archivo de manera eficiente
+        with open(output_path, "w", buffering=1024*1024) as archivo:
+            archivo.writelines(datos)  # Escribe toda la lista en una sola operación
