@@ -126,12 +126,20 @@ def generar_inferencias(DinamicaMolecular, modelo_entrenado, gpu=None):
     Args:
         DinamicaMolecular: Instancia de la clase que contiene los frames a procesar.
         modelo_entrenado (str): Ruta al modelo preentrenado.
-        gpu (str, opcional): ID de la GPU a utilizar (por defecto None, usa CPU si no está definido).
+        gpu (str, opcional): ID de la GPU a utilizar (si es None, usa la primera definida en config.yaml).
 
     Returns:
         DinamicaMolecular: Instancia con los valores de energía y fuerzas actualizados.
     """
-    device = torch.device(f"cuda:{gpu}" if gpu is not None and torch.cuda.is_available() else "cpu")
+    # Cargar la configuración desde el archivo config.yaml
+    with open("config.yaml", "r") as file:
+        config = yaml.safe_load(file)
+    
+    # Obtener la primera GPU del archivo YAML si no se especifica una
+    if gpu is None:
+        gpu = int(config["ngpus"].split(",")[0])
+
+    device = torch.device(f"cuda:{gpu}" if torch.cuda.is_available() else "cpu")
     model = load_model(modelo_entrenado, derivative=True, device=device)
 
     for frame in DinamicaMolecular.frames.values():
