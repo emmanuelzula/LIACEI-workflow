@@ -132,13 +132,23 @@ def generar_inferencias(DinamicaMolecular, modelo_entrenado, gpu=None):
         DinamicaMolecular: Instancia con los valores de energía y fuerzas actualizados.
     """
     # Cargar la configuración desde el archivo config.yaml
-    with open("config.yaml", "r") as file:
+    with open("input/config.yaml", "r") as file:
         config = yaml.safe_load(file)
     
     # Obtener la primera GPU del archivo YAML si no se especifica una
+# Obtener la primera GPU del archivo YAML si no se especifica una
     if gpu is None:
-        gpu = int(config["ngpus"].split(",")[0])
+        if isinstance(config["ngpus"], str):  # Si es string, hacer split
+            gpu = int(config["ngpus"].split(",")[0])
+        elif isinstance(config["ngpus"], int):  # Si ya es un entero, usarlo directamente
+            gpu = config["ngpus"]
+        else:
+            raise TypeError(f"Error: config['ngpus'] tiene un tipo inesperado: {type(config['ngpus'])}")
 
+    # Si gpu es -1, asignar GPU 0 por defecto
+    if gpu == -1:
+        gpu = 0  
+        
     device = torch.device(f"cuda:{gpu}" if torch.cuda.is_available() else "cpu")
     model = load_model(modelo_entrenado, derivative=True, device=device)
 
