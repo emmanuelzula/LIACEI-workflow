@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+import glob
+from LIACEI_workflow.data.DinamicaMolecular import ElementoQuimico
 
 class Graficas_genericas:
     """
@@ -244,583 +246,277 @@ class Graficas_genericas:
         plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
         plt.close()
 
-    def grafica_ref_vs_inf_forces_angles_abs_dif_hydrogen(
-        path_data_file="analysis/forces_angles_H.data",
-        output_path_tif="analysis/ref_vs_inf_forces_angles_abs_dif_Hydrogen.tiff",
+    def graficas_ref_vs_inf_forces_angles_abs_dif(
+        path_data_folder="analysis",
+        output_folder="analysis",
         bins=200,
-        xlim=None,
-        ylim=(0, 4.5)
+        xlim=(0,45),
+        ylim=(0, 5)
     ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, header=None, skiprows=1, delim_whitespace=True
-        )
-        
-        hist, bin_edges = np.histogram(datos.values.flatten(), bins=bins, density=True)
-        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-        
-        plt.figure(figsize=(8, 6))
-        plt.scatter(bin_centres, hist * 100)
-        
-        plt.xlabel('Angle between DFT and TorchMD-Net forces (degrees)')
-        plt.ylabel('Frequency of occurrence (%)')
-        plt.title('Angles Distribution (Hydrogen)')
-        
-        if xlim:
-            plt.xlim(xlim)
-        if ylim:
-            plt.ylim(ylim)
-        
-        plt.grid(True)
-        plt.tight_layout()
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
 
-    def grafica_ref_vs_inf_forces_angles_abs_dif_oxygen(
-        path_data_file="analysis/forces_angles_O.data",
-        output_path_tif="analysis/ref_vs_inf_forces_angles_abs_dif_Oxygen.tiff",
-        bins=200,
-        xlim=None,
-        ylim=(0, 4.5)
-    ):
+        os.makedirs(output_folder, exist_ok=True)
         
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, header=None, skiprows=1, delim_whitespace=True
-        )
-        
-        hist, bin_edges = np.histogram(datos.values.flatten(), bins=bins, density=True)
-        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-        
-        plt.figure(figsize=(8, 6))
-        plt.scatter(bin_centres, hist * 100)
-        
-        plt.xlabel('Angle between DFT and TorchMD-Net forces (degrees)')
-        plt.ylabel('Frequency of occurrence (%)')
-        plt.title('Angles Distribution (Oxygen)')
-        
-        if xlim:
-            plt.xlim(xlim)
-        if ylim:
-            plt.ylim(ylim)
-        
-        plt.grid(True)
-        plt.tight_layout()
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+        archivos = glob.glob(os.path.join(path_data_folder, "*.data"))
 
-    def grafica_ref_vs_inf_forces_angles_abs_dif_aluminium(
-        path_data_file="analysis/forces_angles_Al.data",
-        output_path_tif=None,
-        bins=200,
-        xlim=None,
-        ylim=(0, 4)
-    ):
-        if output_path_tif is None:
-            output_path_tif = "analysis/ref_vs_inf_forces_angles_abs_dif_Aluminium.tiff"
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, header=None, skiprows=1, delim_whitespace=True
-        )
-        
-        hist, bin_edges = np.histogram(datos.values.flatten(), bins=bins, density=True)
-        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-        
-        plt.figure(figsize=(8, 6))
-        plt.scatter(bin_centres, hist * 100)
-        
-        plt.xlabel('Angle between DFT and TorchMD-Net forces (degrees)')
-        plt.ylabel('Frequency of occurrence (%)')
-        plt.title('Angles Distribution (Aluminium)')
-        
-        if xlim:
-            plt.xlim(xlim)
-        if ylim:
-            plt.ylim(ylim)
-        
-        plt.grid(True)
-        plt.tight_layout()
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+        for path_data_file in archivos:
+            nombre_archivo = os.path.basename(path_data_file)
+            elemento = None
 
-    def grafica_ref_vs_inf_forces_modules_hydrogen(
-        path_data_file="analysis/forces_modules_H.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_hydrogen.tiff",
+            # Intentar extraer el nombre del elemento a partir del archivo
+            for num, (nombre, simbolo) in ElementoQuimico.tabla_elementos.items():
+                if f"_{simbolo}" in nombre_archivo or f"_{nombre}" in nombre_archivo:
+                    elemento = ElementoQuimico(num)
+                    break
+            
+            if not elemento:
+                continue  # Si no se reconoce el elemento, omitir el archivo
+
+            output_path_tif = os.path.join(output_folder, f"ref_vs_inf_forces_angles_abs_dif_{elemento.nombre_str}.tiff")
+            os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
+
+            datos = pd.read_csv(path_data_file, header=None, skiprows=1, delim_whitespace=True)
+            hist, bin_edges = np.histogram(datos.values.flatten(), bins=bins, density=True)
+            bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+            plt.figure(figsize=(8, 6))
+            plt.scatter(bin_centres, hist * 100)
+
+            plt.xlabel('Angle between reference and inference forces (degrees)')
+            plt.ylabel('Frequency of occurrence (%)')
+            plt.title(f'Angles Distribution ({elemento.nombre_str})')
+
+            if xlim:
+                plt.xlim(xlim)
+            if ylim:
+                plt.ylim(ylim)
+
+            plt.grid(True)
+            plt.tight_layout()
+
+            plt.savefig(output_path_tif, dpi=600, bbox_inches="tight", format="tiff")
+            plt.close()
+
+    def graficas_ref_vs_inf_forces_modules(
+        path_data_folder="analysis",
+        output_folder="analysis",
         xlim=(0, 12),
         ylim=(0, 12)
     ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        plt.figure(figsize=(8, 6))
-        plt.scatter(datos.iloc[:, 0], datos.iloc[:, 1], s=25)
-        
-        plt.xlabel('DFT modules (eV/$\AA$)')
-        plt.ylabel('TorchMD-net modules (eV/$\AA$)')
-        plt.title('Reference modules vs Inferred modules (Hydrogen)')
-        
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
 
-    def grafica_ref_vs_inf_forces_modules_hydrogen_hist_2d(
-        path_data_file="analysis/forces_modules_H.data",
-        output_path_tif= "analysis/ref_vs_inf_forces_modules_hydrogen_hist_2d.tiff",
+        os.makedirs(output_folder, exist_ok=True)
+        
+        archivos = glob.glob(os.path.join(path_data_folder, "forces_modules_*.data"))
+
+        for path_data_file in archivos:
+            nombre_archivo = os.path.basename(path_data_file)
+            elemento = None
+
+            # Extraer el sufijo del archivo (_H, _O, _Al) para identificar el elemento
+            for num, (nombre, simbolo) in ElementoQuimico.tabla_elementos.items():
+                if nombre_archivo.endswith(f"_{simbolo}.data"):
+                    elemento = ElementoQuimico(num)
+                    break
+            
+            if not elemento:
+                continue  # Si no se reconoce el elemento, omitir el archivo
+
+            output_path_tif = os.path.join(output_folder, f"ref_vs_inf_forces_modules_{elemento.nombre_str}.tiff")
+            os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
+
+            datos = pd.read_csv(path_data_file, sep='\s+', header=0, engine='python')
+            datos.columns = ['Reference modules (eV/$\AA$)', 'Inference modules (eV/$\AA$)']
+
+            plt.figure(figsize=(8, 6))
+            plt.scatter(datos.iloc[:, 0], datos.iloc[:, 1], s=25)
+
+            plt.xlabel('Reference modules (eV/$\AA$)')
+            plt.ylabel('Inference modules (eV/$\AA$)')
+            plt.title(f'Reference modules vs Inference modules ({elemento.nombre_str})')
+
+            plt.xlim(xlim)
+            plt.ylim(ylim)
+
+            plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
+            plt.close()
+
+    def graficas_ref_vs_inf_forces_modules_hist_2d(
+        path_data_folder="analysis",
+        output_folder="analysis",
         bins=50,
         xlim=(0, 12),
         ylim=(0, 12)
     ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente 2 columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        hist, xedges, yedges = np.histogram2d(
-            datos.iloc[:, 0], datos.iloc[:, 1], bins=bins, density=True
-        )
-        
-        hist_filtered = np.where(hist != 0, hist, np.nan)
-        
-        plt.figure(figsize=(8, 6))
-        plt.imshow(hist_filtered.T, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], 
-                cmap='Blues', origin='lower', aspect='auto')
-        plt.colorbar(label='Density')
-        
-        plt.xlabel('DFT modules (eV/$\AA$)')
-        plt.ylabel('TorchMD-net modules (eV/$\AA$)')
-        plt.title('Reference modules vs Inferred modules (Hydrogen)')
-        
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
 
-    def grafica_ref_vs_inf_forces_modules_hydrogen_hist_3d(
-        path_data_file="analysis/forces_modules_H.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_hydrogen_hist_3d.tiff",
+        os.makedirs(output_folder, exist_ok=True)
+        
+        archivos = glob.glob(os.path.join(path_data_folder, "forces_modules_*.data"))
+
+        for path_data_file in archivos:
+            nombre_archivo = os.path.basename(path_data_file)
+            elemento = None
+
+            # Extraer el sufijo del archivo (_H, _O, _Al) para identificar el elemento
+            for num, (nombre, simbolo) in ElementoQuimico.tabla_elementos.items():
+                if nombre_archivo.endswith(f"_{simbolo}.data"):
+                    elemento = ElementoQuimico(num)
+                    break
+            
+            if not elemento:
+                continue  # Si no se reconoce el elemento, omitir el archivo
+
+            output_path_tif = os.path.join(output_folder, f"ref_vs_inf_forces_modules_{elemento.nombre_str}_hist_2d.tiff")
+            os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
+
+            datos = pd.read_csv(path_data_file, sep='\s+', header=0, engine='python')
+
+            if datos.shape[1] != 2:
+                print(f"Error: El archivo {nombre_archivo} no tiene exactamente 2 columnas.")
+                continue
+            
+            datos.columns = ['Reference modules (eV/$\AA$)', 'Inference modules (eV/$\AA$)']
+
+            hist, xedges, yedges = np.histogram2d(
+                datos.iloc[:, 0], datos.iloc[:, 1], bins=bins, density=True
+            )
+            
+            hist_filtered = np.where(hist != 0, hist, np.nan)
+
+            plt.figure(figsize=(8, 6))
+            plt.imshow(hist_filtered.T, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], 
+                    cmap='Blues', origin='lower', aspect='auto')
+            plt.colorbar(label='Density')
+
+            plt.xlabel('Reference modules (eV/$\AA$)')
+            plt.ylabel('Inference modules (eV/$\AA$)')
+            plt.title(f'Reference modules vs Inference modules ({elemento.nombre_str})')
+
+            plt.xlim(xlim)
+            plt.ylim(ylim)
+
+            plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
+            plt.close()
+
+    def graficas_ref_vs_inf_forces_modules_hist_3d(
+        path_data_folder="analysis",
+        output_folder="analysis",
         bins=50,
         xlim=(0, 12),
         ylim=(0, 12)
     ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente 2 columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        hist, xedges, yedges = np.histogram2d(
-            datos.iloc[:, 0], datos.iloc[:, 1], bins=bins, density=True
-        )
-        
-        xpos, ypos = np.meshgrid(xedges[:-1], yedges[:-1], indexing="ij")
-        xpos = xpos.ravel()
-        ypos = ypos.ravel()
-        dz = hist.ravel()
-        
-        non_zero_indices = dz != 0
-        xpos = xpos[non_zero_indices]
-        ypos = ypos[non_zero_indices]
-        dz = dz[non_zero_indices]
-        
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        ax.plot_trisurf(xpos, ypos, dz, cmap='Blues')
-        
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        
-        ax.set_xlabel('DFT modules (eV/$\AA$)')
-        ax.set_ylabel('TorchMD-net modules (eV/$\AA$)')
-        ax.set_zlabel('Density')
-        ax.set_title('Reference modules vs Inferred modules (Hydrogen) (Surface)')
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
 
-    def graficar_ref_vs_inf_forces_modules_hydrogen_hist(
-        path_data_file="analysis/forces_modules_H.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_hydrogen_hist.tiff",
+        os.makedirs(output_folder, exist_ok=True)
+        
+        archivos = glob.glob(os.path.join(path_data_folder, "forces_modules_*.data"))
+
+        for path_data_file in archivos:
+            nombre_archivo = os.path.basename(path_data_file)
+            elemento = None
+
+            # Extraer el sufijo del archivo (_H, _O, _Al) para identificar el elemento
+            for num, (nombre, simbolo) in ElementoQuimico.tabla_elementos.items():
+                if nombre_archivo.endswith(f"_{simbolo}.data"):
+                    elemento = ElementoQuimico(num)
+                    break
+            
+            if not elemento:
+                continue  # Si no se reconoce el elemento, omitir el archivo
+
+            output_path_tif = os.path.join(output_folder, f"ref_vs_inf_forces_modules_{elemento.nombre_str}_hist_3d.tiff")
+            os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
+
+            datos = pd.read_csv(path_data_file, sep='\s+', header=0, engine='python')
+
+            if datos.shape[1] != 2:
+                print(f"Error: El archivo {nombre_archivo} no tiene exactamente 2 columnas.")
+                continue
+            
+            datos.columns = ['Reference modules (eV/$\AA$)', 'Inference modules (eV/$\AA$)']
+
+            hist, xedges, yedges = np.histogram2d(
+                datos.iloc[:, 0], datos.iloc[:, 1], bins=bins, density=True
+            )
+
+            xpos, ypos = np.meshgrid(xedges[:-1], yedges[:-1], indexing="ij")
+            xpos = xpos.ravel()
+            ypos = ypos.ravel()
+            dz = hist.ravel()
+
+            non_zero_indices = dz != 0
+            xpos = xpos[non_zero_indices]
+            ypos = ypos[non_zero_indices]
+            dz = dz[non_zero_indices]
+
+            fig = plt.figure(figsize=(10, 8))
+            ax = fig.add_subplot(111, projection='3d')
+
+            ax.plot_trisurf(xpos, ypos, dz, cmap='Blues')
+
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+
+            ax.set_xlabel('Reference modules (eV/$\AA$)')
+            ax.set_ylabel('Inference modules (eV/$\AA$)')
+            ax.set_zlabel('Density')
+            ax.set_title(f'Reference modules vs Inference modules ({elemento.nombre_str}) (Surface)')
+
+            plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
+            plt.close()
+
+    def graficas_ref_vs_inf_forces_modules_hist(
+        path_data_folder="analysis",
+        output_folder="analysis",
         bins=100,
         xlim=None,
         ylim=None
     ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente dos columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        plt.figure(figsize=(8, 6))
-        plt.hist(datos['Reference modules (eV/$\AA$)'], bins=bins, edgecolor='red', alpha=0.5, label='Reference', align='mid', color='red', density=True)
-        plt.hist(datos['Inferred modules (eV/$\AA$)'], bins=bins, edgecolor='green', alpha=0.5, label='Inference', align='mid', color='green', density=True)
-        
-        plt.xlabel('Modules (eV/$\AA$)')
-        plt.ylabel('Density')
-        plt.title('Distribution of the module of reference and inferred forces (Hydrogen)')
-        
-        if xlim:
-            plt.xlim(xlim)
-        if ylim:
-            plt.ylim(ylim)
 
-        plt.legend()
+        os.makedirs(output_folder, exist_ok=True)
         
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+        archivos = glob.glob(os.path.join(path_data_folder, "forces_modules_*.data"))
 
-    def grafica_ref_vs_inf_forces_modules_oxygen(
-        path_data_file="analysis/forces_modules_O.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_oxygen.tiff",
-        xlim=(0, 12),
-        ylim=(0, 12)
-    ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        plt.figure(figsize=(8, 6))
-        plt.scatter(datos.iloc[:, 0], datos.iloc[:, 1], s=25)
-        
-        plt.xlabel('DFT modules (eV/$\AA$)')
-        plt.ylabel('TorchMD-net modules (eV/$\AA$)')
-        plt.title('Reference modules vs Inferred modules (Oxygen)')
-        
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+        for path_data_file in archivos:
+            nombre_archivo = os.path.basename(path_data_file)
+            elemento = None
 
-    def grafica_ref_vs_inf_forces_modules_oxygen_hist_2d(
-        path_data_file="analysis/forces_modules_O.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_oxygen_hist_2d.tiff",
-        bins=50,
-        xlim=(0, 12),
-        ylim=(0, 12)
-    ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente 2 columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        hist, xedges, yedges = np.histogram2d(
-            datos.iloc[:, 0], datos.iloc[:, 1], bins=bins, density=True
-        )
-        
-        hist_filtered = np.where(hist != 0, hist, np.nan)
-        
-        plt.figure(figsize=(8, 6))
-        plt.imshow(hist_filtered.T, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], 
-                cmap='Blues', origin='lower', aspect='auto')
-        plt.colorbar(label='Density')
-        
-        plt.xlabel('DFT modules (eV/$\AA$)')
-        plt.ylabel('TorchMD-net modules (eV/$\AA$)')
-        plt.title('Reference modules vs Inferred modules (Oxygen)')
-        
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+            # Extraer el sufijo del archivo (_H, _O, _Al) para identificar el elemento
+            for num, (nombre, simbolo) in ElementoQuimico.tabla_elementos.items():
+                if nombre_archivo.endswith(f"_{simbolo}.data"):
+                    elemento = ElementoQuimico(num)
+                    break
+            
+            if not elemento:
+                continue  # Si no se reconoce el elemento, omitir el archivo
 
-    def grafica_ref_vs_inf_forces_modules_oxygen_hist_3d(
-        path_data_file="analysis/forces_modules_O.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_oxygen_hist_3d.tiff",
-        bins=50,
-        xlim=(0, 12),
-        ylim=(0, 12)
-    ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente 2 columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        hist, xedges, yedges = np.histogram2d(
-            datos.iloc[:, 0], datos.iloc[:, 1], bins=bins, density=True
-        )
-        
-        xpos, ypos = np.meshgrid(xedges[:-1], yedges[:-1], indexing="ij")
-        xpos = xpos.ravel()
-        ypos = ypos.ravel()
-        dz = hist.ravel()
-        
-        non_zero_indices = dz != 0
-        xpos = xpos[non_zero_indices]
-        ypos = ypos[non_zero_indices]
-        dz = dz[non_zero_indices]
-        
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        ax.plot_trisurf(xpos, ypos, dz, cmap='Blues')
-        
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        
-        ax.set_xlabel('DFT modules (eV/$\AA$)')
-        ax.set_ylabel('TorchMD-net modules (eV/$\AA$)')
-        ax.set_zlabel('Density')
-        ax.set_title('Reference modules vs Inferred modules (Oxygen) (Surface)')
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+            output_path_tif = os.path.join(output_folder, f"ref_vs_inf_forces_modules_{elemento.nombre_str}_hist.tiff")
+            os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
 
-    def graficar_ref_vs_inf_forces_modules_oxygen_hist(
-        path_data_file="analysis/forces_modules_O.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_oxygen_hist.tiff",
-        bins=100,
-        xlim=None,
-        ylim=None
-    ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente dos columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        plt.figure(figsize=(8, 6))
-        plt.hist(datos['Reference modules (eV/$\AA$)'], bins=bins, edgecolor='red', alpha=0.5, label='Reference', align='mid', color='red', density=True)
-        plt.hist(datos['Inferred modules (eV/$\AA$)'], bins=bins, edgecolor='green', alpha=0.5, label='Inference', align='mid', color='green', density=True)
-        
-        plt.xlabel('Modules (eV/$\AA$)')
-        plt.ylabel('Density')
-        plt.title('Distribution of the module of reference and inferred forces (Oxygen)')
-        
-        if xlim:
-            plt.xlim(xlim)
-        if ylim:
-            plt.ylim(ylim)
-        
-        plt.legend()
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+            datos = pd.read_csv(path_data_file, sep='\s+', header=0, engine='python')
 
-    def grafica_ref_vs_inf_forces_modules_aluminium(
-        path_data_file="analysis/forces_modules_Al.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_aluminium.tiff",
-        xlim=(0, 12),
-        ylim=(0, 12)
-    ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        plt.figure(figsize=(8, 6))
-        plt.scatter(datos.iloc[:, 0], datos.iloc[:, 1], s=25)
-        
-        plt.xlabel('DFT modules (eV/$\AA$)')
-        plt.ylabel('TorchMD-net modules (eV/$\AA$)')
-        plt.title('Reference modules vs Inferred modules (Aluminium)')
-        
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+            if datos.shape[1] != 2:
+                print(f"Error: El archivo {nombre_archivo} no tiene exactamente dos columnas.")
+                continue
+            
+            datos.columns = ['Reference modules (eV/$\AA$)', 'Inference modules (eV/$\AA$)']
 
-    def grafica_ref_vs_inf_forces_modules_aluminium_hist_2d(
-        path_data_file="analysis/forces_modules_Al.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_aluminium_hist_2d.tiff",
-        bins=50,
-        xlim=(0, 12),
-        ylim=(0, 12)
-    ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente 2 columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        hist, xedges, yedges = np.histogram2d(
-            datos.iloc[:, 0], datos.iloc[:, 1], bins=bins, density=True
-        )
-        
-        hist_filtered = np.where(hist != 0, hist, np.nan)
-        
-        plt.figure(figsize=(8, 6))
-        plt.imshow(hist_filtered.T, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], 
-                cmap='Blues', origin='lower', aspect='auto')
-        plt.colorbar(label='Density')
-        
-        plt.xlabel('DFT modules (eV/$\AA$)')
-        plt.ylabel('TorchMD-net modules (eV/$\AA$)')
-        plt.title('Reference modules vs Inferred modules (Aluminium)')
-        
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+            plt.figure(figsize=(8, 6))
+            plt.hist(datos['Reference modules (eV/$\AA$)'], bins=bins, edgecolor='red', alpha=0.5, 
+                    label='Reference', align='mid', color='red', density=True)
+            plt.hist(datos['Inference modules (eV/$\AA$)'], bins=bins, edgecolor='green', alpha=0.5, 
+                    label='Inference', align='mid', color='green', density=True)
 
-    def grafica_ref_vs_inf_forces_modules_aluminium_hist_3d(
-        path_data_file="analysis/forces_modules_Al.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_aluminium_hist_3d.tiff",
-        bins=50,
-        xlim=(0, 12),
-        ylim=(0, 12)
-    ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente 2 columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        hist, xedges, yedges = np.histogram2d(
-            datos.iloc[:, 0], datos.iloc[:, 1], bins=bins, density=True
-        )
-        
-        xpos, ypos = np.meshgrid(xedges[:-1], yedges[:-1], indexing="ij")
-        xpos = xpos.ravel()
-        ypos = ypos.ravel()
-        dz = hist.ravel()
-        
-        non_zero_indices = dz != 0
-        xpos = xpos[non_zero_indices]
-        ypos = ypos[non_zero_indices]
-        dz = dz[non_zero_indices]
-        
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        ax.plot_trisurf(xpos, ypos, dz, cmap='Blues')
-        
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        
-        ax.set_xlabel('DFT modules (eV/$\AA$)')
-        ax.set_ylabel('TorchMD-net modules (eV/$\AA$)')
-        ax.set_zlabel('Density')
-        ax.set_title('Reference modules vs Inferred modules (Aluminium) (Surface)')
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+            plt.xlabel('Modules (eV/$\AA$)')
+            plt.ylabel('Density')
+            plt.title(f'Distribution of the module of reference and inferred forces ({elemento.nombre_str})')
 
-    def graficar_ref_vs_inf_forces_modules_aluminium_hist(
-        path_data_file="analysis/forces_modules_Al.data",
-        output_path_tif="analysis/ref_vs_inf_forces_modules_aluminium_hist.tiff",
-        bins=100,
-        xlim=None,
-        ylim=None
-    ):
-        
-        os.makedirs(os.path.dirname(output_path_tif), exist_ok=True)
-        
-        datos = pd.read_csv(
-            path_data_file, sep='\s+', header=0, engine='python'
-        )
-        
-        if datos.shape[1] != 2:
-            print("Error: El archivo no tiene exactamente dos columnas.")
-            return
-        
-        datos.columns = ['Reference modules (eV/$\AA$)', 'Inferred modules (eV/$\AA$)']
-        
-        plt.figure(figsize=(8, 6))
-        plt.hist(datos['Reference modules (eV/$\AA$)'], bins=bins, edgecolor='red', alpha=0.5, label='Reference', align='mid', color='red', density=True)
-        plt.hist(datos['Inferred modules (eV/$\AA$)'], bins=bins, edgecolor='green', alpha=0.5, label='Inference', align='mid', color='green', density=True)
-        
-        plt.xlabel('Modules (eV/$\AA$)')
-        plt.ylabel('Density')
-        plt.title('Distribution of the module of reference and inferred forces (Aluminium)')
-        
-        if xlim:
-            plt.xlim(xlim)
-        if ylim:
-            plt.ylim(ylim)
-        
-        plt.legend()
-        
-        plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
-        plt.close()
+            if xlim:
+                plt.xlim(xlim)
+            if ylim:
+                plt.ylim(ylim)
+
+            plt.legend()
+
+            plt.savefig(output_path_tif, dpi=600, bbox_inches='tight', format='tiff')
+            plt.close()
 
 class Publicacion:
     """

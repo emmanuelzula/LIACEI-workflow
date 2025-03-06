@@ -341,9 +341,9 @@ class ElementoQuimico:
     Representa un elemento químico con su número atómico, nombre y símbolo.
     """
     tabla_elementos = {
-        1: ("Hidrógeno", "H"),
-        8: ("Oxígeno", "O"),
-        13: ("Aluminio", "Al"),
+        1: ("Hydrogen", "H"),
+        8: ("Oxygen", "O"),
+        13: ("Aluminium", "Al"),
     }
 
     energias_atomicas = {
