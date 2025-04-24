@@ -39,6 +39,16 @@ Este proyecto implementa una refactorización del workflow de LIACEI, con mejora
    ```
 
 ## Uso
+Se debe introducir la configuracion en un archivo llamado config.yaml y los datos en un archivo input.data dentro de un carpeta llamada input.
+
+Dentro del script llamado `torchmd-net-train.sh` se debe modificar `CUDA_VISIBLE_DEVICES=0` para seleccionar las gpu a utilizar. Es critico que se mantenga sin cambios el parametro `ngpus: -1` en la configuración ya que de ser modificado el modelo no usara gpu.
+
+Una vez ajustados la configuración se ejecuta el script `torchmd-net-train.sh` con los siguientes comandos
+
+```bash
+chmod +x torchmd-net-train.sh
 ```
 
+```bash
+nohup ./torchmd-net-train.sh > train/salida.log 2>&1 &
 ```

@@ -19,7 +19,7 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-echo "Entorno virtual 'torchmd-net-safe' activado."
+echo "Entorno virtual 'torchmd-net' activado."
 
 echo "Iniciando conversión de datos"
 # Ejecutar el script en Python
@@ -57,7 +57,7 @@ echo "Iniciando entrenamiento con TorchMD-Net..."
 
 start_time=$(date +%s)  # Captura el tiempo de inicio
 
-torchmd-train --conf input/config.yaml --log-dir train
+CUDA_VISIBLE_DEVICES=0 torchmd-train --conf input/config.yaml --log-dir train/
 
 if [[ $? -ne 0 ]]; then
     echo "Error en el entrenamiento con TorchMD-Net."
@@ -177,12 +177,12 @@ EOF
 
 if [[ $? -ne 0 ]]; then
     echo "Error en la ejecución de Python."
-    mamba deactivate
+    conda deactivate
     exit 1
 fi
 
 echo "Generación de graficas finalizada correctamente"
 
 # Desactivar el entorno virtual de Mamba
-mamba deactivate
+conda deactivate
 echo "Entorno virtual 'torchmd-net' desactivado."
